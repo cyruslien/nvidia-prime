@@ -47,7 +47,6 @@ import shutil
 from copy import deepcopy
 from subprocess import Popen, PIPE, CalledProcessError
 
-
 class Switcher(object):
 
     def __init__(self):
@@ -74,6 +73,8 @@ class Switcher(object):
             return 'nvidia'
         elif config == "on-demand":
             return 'on-demand'
+        elif config == "reverse-prime":
+            return 'reverse-prime'
         else:
             return 'intel'
 
@@ -90,6 +91,8 @@ class Switcher(object):
             nvidia_power = 'off'
         elif profile == "on-demand":
             nvidia_power = "on-demand"
+        elif profile == "reverse-prime":
+            nvidia_power = "reverse-prime"
         elif profile == 'nvidia':
             nvidia_power = 'on'
         else:
@@ -149,7 +152,7 @@ class Switcher(object):
             # Always allow enabling nvidia
             # (No need to check if nvidia is available)
             self._enable_nvidia()
-        elif profile == "on-demand":
+        elif profile == "on-demand" or profile == "reverse-prime":
             self._disable_nvidia(keep_nvidia_modules=True)
             if self._supports_runtimepm():
                 self._enable_runtimepm()
@@ -379,8 +382,14 @@ def handle_query_error():
     sys.stderr.write("Error: no profile can be found\n")
     exit(1)
 
+def supports_reverse_prime():
+    return os.path.isfile('/run/nvidia_reverse_prime_supported')
+
 def usage():
-    sys.stderr.write("Usage: %s nvidia|intel|on-demand|query\n" % (sys.argv[0]))
+    if supports_reverse_prime():
+        sys.stderr.write("Usage: %s nvidia|intel|on-demand|reverse-prime|query\n" % (sys.argv[0]))
+    else:
+        sys.stderr.write("Usage: %s nvidia|intel|on-demand|query\n" % (sys.argv[0]))
 
 if __name__ == '__main__':
     try:
@@ -394,7 +403,7 @@ if __name__ == '__main__':
 
     switcher = Switcher()
 
-    if arg in ['intel', 'nvidia', 'on-demand']:
+    if arg in ['intel', 'nvidia', 'on-demand', 'reverse-prime']:
         check_root()
         switcher.enable_profile(arg)
     elif arg == 'query':
